@@ -65,7 +65,8 @@ func (parser *IniParser) GetSections() (map[string]map[string]string, error) {
 }
 
 func (parser *IniParser) LoadFromString(str string) error {
-	strLower := strings.ToLower(str)
+	strTrim:= strings.TrimSpace(str)
+	strLower := strings.ToLower(strTrim)
 	sectionRegex, _ := regexp.Compile(`^\[.+\]$`)
 	sectionsNames := strings.Split(strLower, "\n")
 	for _, section := range sectionsNames {
@@ -108,11 +109,10 @@ func (parser *IniParser) LoadFromFile(path string) error {
 	return nil
 }
 
-func (parser *IniParser) SaveToFile() error {
+func (parser *IniParser) ToString() string{
 	sections := parser.sectionsNameList
 	if sections == nil {
-		errNoSections := errors.New("No avaliable sections to save in file")
-		return errNoSections
+		return ""
 	}
 	str := ""
 	for _, section := range sections {
@@ -123,6 +123,15 @@ func (parser *IniParser) SaveToFile() error {
 			str+=key+"="+values[i]+"\n"
 		}
 
+	}
+	return str
+}
+
+func (parser *IniParser) SaveToFile() error {
+	str:=parser.ToString()
+	if str==""{
+		errNoSections := errors.New("No avaliable sections to save in file")
+		return errNoSections
 	}
 	file, err := os.Create(`../config.ini`)
 	if err != nil {
