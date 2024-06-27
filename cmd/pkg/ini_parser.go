@@ -2,26 +2,19 @@ package parser
 
 import (
 	"errors"
-	"fmt"
+	"slices"
+
 	"os"
 	"regexp"
 	"strings"
+
 	"golang.org/x/exp/maps"
 )
 
 type IniParser struct {
-	numberOfSections            int
-	sections                    map[string]map[string]string
-	sectionsNameList            []string
-	errCouldNotLoadDataFromFile error
-	// LoadFromString  error
-	// LoadFromFile    error
-	// GetSectionNames []string
-	// GetSections     map[string]map[string]string
-	// Get(section_name, key)
-	// Set(section_name, key, value)
-	// ToString
-	// SaveToFile
+	numberOfSections int
+	sections         map[string]map[string]string
+	sectionsNameList []string
 }
 
 func NewParser() IniParser {
@@ -29,18 +22,18 @@ func NewParser() IniParser {
 	newParsing := IniParser{}
 	newParsing.sections = newSections
 	newParsing.numberOfSections = 0
-	newParsing.errCouldNotLoadDataFromFile = errors.New("Couldn't load data from file")
 	return newParsing
 }
 
-func (parser *IniParser) Set(section, key, value string) (sectionV, keyV, valueV string) {
-	sectionL:=strings.ToLower(section)
-	keyL:=strings.ToLower(key)
-	if parser.sections[sectionL] == nil {
-		parser.sections[sectionL] = make(map[string]string)
+func (parser *IniParser) Set(section, key, value string) string {
+	section = strings.ToLower(section)
+	key = strings.ToLower(key)
+	value = strings.ToLower(value)
+	if parser.sections[section] == nil {
+		parser.sections[section] = make(map[string]string)
 	}
-	parser.sections[sectionL][keyL] = value
-	return sectionL, keyL, value
+	parser.sections[section][key] = value
+	return parser.sections[section][key]
 }
 
 func (parser *IniParser) Get(section_name, key string) (string, error) {
@@ -65,29 +58,31 @@ func (parser *IniParser) GetSections() (map[string]map[string]string, error) {
 }
 
 func (parser *IniParser) LoadFromString(str string) error {
-	strTrim:= strings.TrimSpace(str)
+	var sectionIndex int
+	strTrim := strings.TrimSpace(str)
 	strLower := strings.ToLower(strTrim)
 	sectionRegex, _ := regexp.Compile(`^\[.+\]$`)
 	sectionsNames := strings.Split(strLower, "\n")
-	for _, section := range sectionsNames {
-		if sectionRegex.Match([]byte(section)) {
-			section := strings.TrimPrefix(strings.TrimSuffix(section, "]"), "[")
-			fmt.Println(section)
-			parser.sections[section] = make(map[string]string)
+	for _, slice := range sectionsNames {
+		if sectionRegex.Match([]byte(slice)) {
+			section := strings.TrimPrefix(strings.TrimSuffix(slice, "]"), "[")
+			sectionIndex=slices.Index(parser.sectionsNameList,section)
+			if sectionIndex != -1 {
+				continue
+			}
+			parser.sections[slice] = make(map[string]string)
 			parser.sectionsNameList = append(parser.sectionsNameList, string(section))
 			parser.numberOfSections++
-		} else if strings.Contains(section,"="){
-			keysAndValues := strings.Split(section, "\n")
-			for _, pair := range keysAndValues {
-				if !strings.Contains(string(pair),"#"){
-					fmt.Println(pair)
-					pair := strings.Split(pair, "=")
-					fmt.Println("---------------->",pair)
-					sec, _, _ := parser.Set(parser.sectionsNameList[parser.numberOfSections-1], pair[0], pair[1])
-					if sec != parser.sectionsNameList[parser.numberOfSections-1] {
-						errCouldNotParseData := errors.New("Couldn't parse value ")
-						return errCouldNotParseData
-					}
+		} else if strings.Contains(slice, "=") {
+			if !strings.Contains(string(slice), "#") {
+				pair := strings.Split(slice, "=")
+				if(sectionIndex==-1){
+					sectionIndex = len(parser.sectionsNameList)-1
+				}
+				sec := parser.Set(parser.sectionsNameList[sectionIndex], pair[0], pair[1])
+				if sec != parser.sectionsNameList[parser.numberOfSections-1] {
+					errCouldNotParseData := errors.New("Couldn't parse value ")
+					return errCouldNotParseData
 				}
 			}
 
@@ -99,7 +94,7 @@ func (parser *IniParser) LoadFromString(str string) error {
 func (parser *IniParser) LoadFromFile(path string) error {
 	readFile, err := os.ReadFile(path)
 	if err != nil {
-		return parser.errCouldNotLoadDataFromFile
+		return err
 	}
 	errParser := parser.LoadFromString(string(readFile))
 	if errParser != nil {
@@ -109,7 +104,7 @@ func (parser *IniParser) LoadFromFile(path string) error {
 	return nil
 }
 
-func (parser *IniParser) ToString() string{
+func (parser *IniParser) ToString() string {
 	sections := parser.sectionsNameList
 	if sections == nil {
 		return ""
@@ -118,9 +113,9 @@ func (parser *IniParser) ToString() string{
 	for _, section := range sections {
 		str += "[" + section + "]\n"
 		keys := maps.Keys(parser.sections[section])
-		values:=maps.Values(parser.sections[section])
-		for i, key:= range (keys){
-			str+=key+"="+values[i]+"\n"
+		values := maps.Values(parser.sections[section])
+		for i, key := range keys {
+			str += key + "=" + values[i] + "\n"
 		}
 
 	}
@@ -128,8 +123,8 @@ func (parser *IniParser) ToString() string{
 }
 
 func (parser *IniParser) SaveToFile() error {
-	str:=parser.ToString()
-	if str==""{
+	str := parser.ToString()
+	if str == "" {
 		errNoSections := errors.New("No avaliable sections to save in file")
 		return errNoSections
 	}
