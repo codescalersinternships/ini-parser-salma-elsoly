@@ -12,7 +12,6 @@ import (
 )
 
 type IniParser struct {
-	numberOfSections int
 	sections         map[string]map[string]string
 	sectionsNameList []string
 }
@@ -21,11 +20,11 @@ func NewParser() IniParser {
 	newSections := make(map[string]map[string]string)
 	newParsing := IniParser{}
 	newParsing.sections = newSections
-	newParsing.numberOfSections = 0
 	return newParsing
 }
 
 func (parser *IniParser) Set(section, key, value string) string {
+	section = strings.TrimPrefix(strings.TrimSuffix(section,"]"),"[")
 	section = strings.ToLower(section)
 	key = strings.ToLower(key)
 	value = strings.ToLower(value)
@@ -37,6 +36,7 @@ func (parser *IniParser) Set(section, key, value string) string {
 }
 
 func (parser *IniParser) Get(section_name, key string) (string, error) {
+	section_name = strings.TrimPrefix(strings.TrimSuffix(section_name,"]"),"[")
 	if value, ok := parser.sections[strings.ToLower(section_name)][strings.ToLower(key)]; ok {
 		return value, nil
 	} else {
@@ -59,10 +59,10 @@ func (parser *IniParser) GetSections() (map[string]map[string]string, error) {
 
 func (parser *IniParser) LoadFromString(str string) error {
 	var sectionIndex int
-	strTrim := strings.TrimSpace(str)
-	strLower := strings.ToLower(strTrim)
+	str = strings.TrimSpace(str)
+	str = strings.ToLower(str)
 	sectionRegex, _ := regexp.Compile(`^\[.+\]$`)
-	sectionsNames := strings.Split(strLower, "\n")
+	sectionsNames := strings.Split(str, "\n")
 	for _, slice := range sectionsNames {
 		if sectionRegex.Match([]byte(slice)) {
 			section := strings.TrimPrefix(strings.TrimSuffix(slice, "]"), "[")
@@ -72,7 +72,6 @@ func (parser *IniParser) LoadFromString(str string) error {
 			}
 			parser.sections[slice] = make(map[string]string)
 			parser.sectionsNameList = append(parser.sectionsNameList, string(section))
-			parser.numberOfSections++
 		} else if strings.Contains(slice, "=") {
 			if !strings.Contains(string(slice), "#") {
 				pair := strings.Split(slice, "=")
@@ -80,7 +79,7 @@ func (parser *IniParser) LoadFromString(str string) error {
 					sectionIndex = len(parser.sectionsNameList)-1
 				}
 				sec := parser.Set(parser.sectionsNameList[sectionIndex], pair[0], pair[1])
-				if sec != parser.sectionsNameList[parser.numberOfSections-1] {
+				if sec != parser.sectionsNameList[sectionIndex] {
 					errCouldNotParseData := errors.New("Couldn't parse value ")
 					return errCouldNotParseData
 				}
