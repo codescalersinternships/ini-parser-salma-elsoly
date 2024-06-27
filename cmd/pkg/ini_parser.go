@@ -24,7 +24,7 @@ func NewParser() IniParser {
 }
 
 func (parser *IniParser) Set(section, key, value string) string {
-	section = strings.TrimPrefix(strings.TrimSuffix(section,"]"),"[")
+	section = strings.TrimPrefix(strings.TrimSuffix(section, "]"), "[")
 	section = strings.ToLower(section)
 	key = strings.ToLower(key)
 	value = strings.ToLower(value)
@@ -36,7 +36,7 @@ func (parser *IniParser) Set(section, key, value string) string {
 }
 
 func (parser *IniParser) Get(section_name, key string) (string, error) {
-	section_name = strings.TrimPrefix(strings.TrimSuffix(section_name,"]"),"[")
+	section_name = strings.TrimPrefix(strings.TrimSuffix(section_name, "]"), "[")
 	if value, ok := parser.sections[strings.ToLower(section_name)][strings.ToLower(key)]; ok {
 		return value, nil
 	} else {
@@ -66,7 +66,7 @@ func (parser *IniParser) LoadFromString(str string) error {
 	for _, slice := range sectionsNames {
 		if sectionRegex.Match([]byte(slice)) {
 			section := strings.TrimPrefix(strings.TrimSuffix(slice, "]"), "[")
-			sectionIndex=slices.Index(parser.sectionsNameList,section)
+			sectionIndex = slices.Index(parser.sectionsNameList, section)
 			if sectionIndex != -1 {
 				continue
 			}
@@ -75,8 +75,8 @@ func (parser *IniParser) LoadFromString(str string) error {
 		} else if strings.Contains(slice, "=") {
 			if !strings.Contains(string(slice), "#") {
 				pair := strings.Split(slice, "=")
-				if(sectionIndex==-1){
-					sectionIndex = len(parser.sectionsNameList)-1
+				if sectionIndex == -1 {
+					sectionIndex = len(parser.sectionsNameList) - 1
 				}
 				sec := parser.Set(parser.sectionsNameList[sectionIndex], pair[0], pair[1])
 				if sec != parser.sectionsNameList[sectionIndex] {
