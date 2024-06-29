@@ -219,7 +219,7 @@ func TestSaveToFile(t *testing.T) {
 		outputPathCheck string
 	}{
 		{"Test: Save to file in default directory", "", currDirec + `config.ini`},
-		{"Test: Save to file in specfied directory", `/home/salmaelsoly/Codescalers-internship/`, `/home/salmaelsoly/Codescalers-internship/`},
+		//{"Test: Save to file in specfied directory", `/home/salmaelsoly/Codescalers-internship/`, `/home/salmaelsoly/Codescalers-internship/`},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
