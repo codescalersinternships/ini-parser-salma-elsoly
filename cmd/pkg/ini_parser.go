@@ -50,10 +50,8 @@ func (parser *IniParser) Get(section_name, key string) (string, error) {
 	section_name = strings.TrimPrefix(strings.TrimSuffix(section_name, "]"), "[")
 	if value, ok := parser.sections[strings.ToLower(section_name)][strings.ToLower(key)]; ok {
 		return value, nil
-	} else {
-		errNotFound := errors.New("The given data is not valid")
-		return value, errNotFound
 	}
+	return "", errors.New("The given data is not valid")
 }
 
 /*This function returns list of section names*/
@@ -70,8 +68,7 @@ func (parser *IniParser) GetSectionNames() []string {
 /*This function returns the sections of ini in map[string]map[string]string and error if no sections was stored*/
 func (parser *IniParser) GetSections() (map[string]map[string]string, error) {
 	if parser.sections == nil {
-		errNoSections := errors.New("No avaliable sections to return")
-		return nil, errNoSections
+		return nil, errors.New("No avaliable sections to return")
 	}
 	return parser.sections, nil
 }
@@ -103,8 +100,7 @@ func (parser *IniParser) LoadFromString(str string) error {
 			}
 			sec := parser.Set(parser.sectionsNameList[sectionIndex], pair[0], pair[1])
 			if sec != pair[1] {
-				errCouldNotParseData := errors.New("Couldn't parse value ")
-				return errCouldNotParseData
+				return errors.New("Couldn't parse value ")
 			}
 
 		}
@@ -123,8 +119,7 @@ func (parser *IniParser) LoadFromFile(path string) error {
 	}
 	errParser := parser.LoadFromString(string(readFile))
 	if errParser != nil {
-		errCouldNotParseData := errors.New("Couldn't parse the file")
-		return errCouldNotParseData
+		return errParser
 	}
 	return nil
 }
