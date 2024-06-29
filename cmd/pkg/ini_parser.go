@@ -2,6 +2,7 @@ package parser
 
 import (
 	"errors"
+
 	"slices"
 
 	"os"
@@ -80,6 +81,9 @@ func (parser *IniParser) LoadFromString(str string) error {
 			parser.sections[section] = make(map[string]string)
 			parser.sectionsNameList = append(parser.sectionsNameList, string(section))
 		} else if !strings.HasPrefix(string(slice), "#") {
+			if !strings.Contains(slice, "=") {
+				continue
+			}
 			pair := strings.Split(slice, "=")
 			if sectionIndex == -1 {
 				sectionIndex = len(parser.sectionsNameList) - 1
@@ -109,11 +113,8 @@ func (parser *IniParser) LoadFromFile(path string) error {
 }
 
 func (parser *IniParser) ToString() string {
-	sections := parser.sectionsNameList
-	if sections == nil {
-		return ""
-	}
-	str := ""
+	var str = ""
+	sections := maps.Keys(parser.sections)
 	for _, section := range sections {
 		str += "[" + section + "]\n"
 		keys := maps.Keys(parser.sections[section])
@@ -121,6 +122,7 @@ func (parser *IniParser) ToString() string {
 		for i, key := range keys {
 			str += key + "=" + values[i] + "\n"
 		}
+		str += "\n"
 
 	}
 	return str
@@ -132,7 +134,7 @@ func (parser *IniParser) SaveToFile() error {
 		errNoSections := errors.New("No avaliable sections to save in file")
 		return errNoSections
 	}
-	file, err := os.Create(`../config.ini`)
+	file, err := os.OpenFile(`../../config.ini`, os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
 		return err
 	}
@@ -140,5 +142,6 @@ func (parser *IniParser) SaveToFile() error {
 	if errWrite != nil {
 		return err
 	}
+	defer file.Close()
 	return nil
 }
