@@ -90,7 +90,6 @@ func TestGetSectionNames(t *testing.T) {
 	}
 	t.Run("Test: Get normal section name", func(t *testing.T) {
 		got := p.GetSectionNames()
-		fmt.Println(got)
 		if !slices.Equal(want, got) {
 			t.Errorf("GetSectionNames---> got %v want %v", got, want)
 		}
@@ -166,6 +165,7 @@ func TestLoadFromFile(t *testing.T) {
 	t.Run(testname, func(t *testing.T) {
 		err := p.LoadFromFile(paths[0])
 		if err != nil && !reflect.DeepEqual(p.sections, want) {
+			fmt.Println(err)
 			t.Errorf("LoadFromFile---> got %v want %v", p.sections, want)
 		}
 	})
@@ -212,14 +212,28 @@ func TestSaveToFile(t *testing.T) {
 	if err != nil {
 		t.Fatal("error reading golden file:", err)
 	}
+	var tests = []struct {
+		name            string
+		inputPath       string
+		outputPathCheck string
+	}{
+		{"Test: Save to file in default directory", "", `../config.ini`},
+		{"Test: Save to file in specfied directory", `/home/salmaelsoly/Codescalers-internship/`, `../../config.ini`},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var err error
+			if test.inputPath == "" {
+				err = p.SaveToFile()
+			} else {
+				err = p.SaveToFile(test.inputPath)
+			}
 
-	t.Run("Test: Save to file", func(t *testing.T) {
-		err := p.SaveToFile()
-		got, _ := os.ReadFile(`../config.ini`)
-		if err != nil && !bytes.Equal(want, got) {
-			fmt.Println(err)
-			t.Errorf("SaveToFile---> got %v want %v", got, want)
-		}
-	})
+			got, _ := os.ReadFile(test.outputPathCheck)
+			if err != nil && !bytes.Equal(want, got) {
+				t.Errorf("SaveToFile---> got %v want %v", got, want)
+			}
+		})
+	}
 
 }
