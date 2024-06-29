@@ -46,6 +46,12 @@ func (parser *IniParser) Get(section_name, key string) (string, error) {
 }
 
 func (parser *IniParser) GetSectionNames() []string {
+	if len(parser.sectionsNameList) != len(parser.sections) {
+		parser.sectionsNameList = nil
+		for _, section := range maps.Keys(parser.sections) {
+			parser.sectionsNameList = append(parser.sectionsNameList, section)
+		}
+	}
 	return parser.sectionsNameList
 }
 
@@ -64,25 +70,24 @@ func (parser *IniParser) LoadFromString(str string) error {
 	sectionRegex, _ := regexp.Compile(`^\[.+\]$`)
 	sectionsNames := strings.Split(str, "\n")
 	for _, slice := range sectionsNames {
+		slice = strings.TrimSpace(slice)
 		if sectionRegex.Match([]byte(slice)) {
 			section := strings.TrimPrefix(strings.TrimSuffix(slice, "]"), "[")
 			sectionIndex = slices.Index(parser.sectionsNameList, section)
 			if sectionIndex != -1 {
 				continue
 			}
-			parser.sections[slice] = make(map[string]string)
+			parser.sections[section] = make(map[string]string)
 			parser.sectionsNameList = append(parser.sectionsNameList, string(section))
-		} else if strings.Contains(slice, "=") {
-			if !strings.Contains(string(slice), "#") {
-				pair := strings.Split(slice, "=")
-				if sectionIndex == -1 {
-					sectionIndex = len(parser.sectionsNameList) - 1
-				}
-				sec := parser.Set(parser.sectionsNameList[sectionIndex], pair[0], pair[1])
-				if sec != parser.sectionsNameList[sectionIndex] {
-					errCouldNotParseData := errors.New("Couldn't parse value ")
-					return errCouldNotParseData
-				}
+		} else if !strings.HasPrefix(string(slice), "#") {
+			pair := strings.Split(slice, "=")
+			if sectionIndex == -1 {
+				sectionIndex = len(parser.sectionsNameList) - 1
+			}
+			sec := parser.Set(parser.sectionsNameList[sectionIndex], pair[0], pair[1])
+			if sec != pair[1] {
+				errCouldNotParseData := errors.New("Couldn't parse value ")
+				return errCouldNotParseData
 			}
 
 		}
