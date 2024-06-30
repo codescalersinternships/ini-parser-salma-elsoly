@@ -155,6 +155,6 @@ func (parser *IniParser) SaveToFile(path ...string) error {
 	if errWrite != nil {
 		return err
 	}
-	
+
 	return nil
 }
