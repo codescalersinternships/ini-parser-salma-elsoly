@@ -4,8 +4,6 @@ import (
 	"errors"
 	"sort"
 
-	"slices"
-
 	"os"
 	"regexp"
 	"strings"
@@ -13,10 +11,13 @@ import (
 	"golang.org/x/exp/maps"
 )
 
+type Stringer interface {
+	String()
+}
+
 /*This struct is used to identify Iniparser type which contains methods for parsing and creating ini file getting and setting values*/
 type IniParser struct {
-	sections         map[string]map[string]string
-	sectionsNameList []string
+	sections map[string]map[string]string
 }
 
 /* This acts as constructor for IniParser struct and returns Iniparser*/
@@ -39,7 +40,6 @@ func (parser *IniParser) Set(section, key, value string) string {
 	value = strings.ToLower(value)
 	if parser.sections[section] == nil {
 		parser.sections[section] = make(map[string]string)
-		parser.sectionsNameList = append(parser.sectionsNameList, section)
 	}
 	parser.sections[section][key] = value
 	return parser.sections[section][key]
@@ -56,13 +56,9 @@ func (parser *IniParser) Get(section_name, key string) (string, error) {
 
 /*This function returns list of section names*/
 func (parser *IniParser) GetSectionNames() []string {
-	if len(parser.sectionsNameList) != len(parser.sections) {
-		parser.sectionsNameList = nil
-		parser.sectionsNameList = append(parser.sectionsNameList, maps.Keys(parser.sections)...)
-
-	}
-	sort.Strings(parser.sectionsNameList)
-	return parser.sectionsNameList
+	list := maps.Keys(parser.sections)
+	sort.Strings(list)
+	return list
 }
 
 /*This function returns the sections of ini in map[string]map[string]string and error if no sections was stored*/
@@ -75,7 +71,7 @@ func (parser *IniParser) GetSections() (map[string]map[string]string, error) {
 
 /*This function take string as parameter and parse it and store the  data returns an error if data couldn't be parsed*/
 func (parser *IniParser) LoadFromString(str string) error {
-	var sectionIndex int
+	var currSection string
 	str = strings.TrimSpace(str)
 	str = strings.ToLower(str)
 	sectionRegex, _ := regexp.Compile(`^\[.+\]$`)
@@ -84,21 +80,14 @@ func (parser *IniParser) LoadFromString(str string) error {
 		slice = strings.TrimSpace(slice)
 		if sectionRegex.Match([]byte(slice)) {
 			section := strings.TrimPrefix(strings.TrimSuffix(slice, "]"), "[")
-			sectionIndex = slices.Index(parser.sectionsNameList, section)
-			if sectionIndex != -1 {
-				continue
-			}
+			currSection = section
 			parser.sections[section] = make(map[string]string)
-			parser.sectionsNameList = append(parser.sectionsNameList, string(section))
 		} else if !strings.HasPrefix(string(slice), "#") {
 			if !strings.Contains(slice, "=") {
 				continue
 			}
 			pair := strings.Split(slice, "=")
-			if sectionIndex == -1 {
-				sectionIndex = len(parser.sectionsNameList) - 1
-			}
-			sec := parser.Set(parser.sectionsNameList[sectionIndex], pair[0], pair[1])
+			sec := parser.Set(currSection, pair[0], pair[1])
 			if sec != pair[1] {
 				return errors.New("Couldn't parse value ")
 			}
@@ -125,7 +114,7 @@ func (parser *IniParser) LoadFromFile(path string) error {
 }
 
 /* This function convert sections stored of .ini to string and return this string*/
-func (parser *IniParser) ToString() string {
+func (parser *IniParser) String() string {
 	var str = ""
 	sections := maps.Keys(parser.sections)
 	for _, section := range sections {
@@ -147,7 +136,7 @@ The function doesn't take arguments, it opens file config.ini in the current wor
 if the file doesn't exist it creates it and write to it, returns error if issue occured
 */
 func (parser *IniParser) SaveToFile(path ...string) error {
-	str := parser.ToString()
+	str := parser.String()
 	if str == "" {
 		errNoSections := errors.New("No avaliable sections to save in file")
 		return errNoSections

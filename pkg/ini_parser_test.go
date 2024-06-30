@@ -171,7 +171,7 @@ func TestLoadFromFile(t *testing.T) {
 	})
 
 }
-func TestToString(t *testing.T) {
+func TestString(t *testing.T) {
 	p := NewParser()
 	p.sections = map[string]map[string]string{
 		"default": {"serveraliveinterval": "45", "compression": "yes",
@@ -189,7 +189,7 @@ func TestToString(t *testing.T) {
 	}
 	want := string(bytes)
 	t.Run("Test: Convert data to string", func(t *testing.T) {
-		got := p.ToString()
+		got := p.String()
 		if reflect.DeepEqual(got, want) {
 			t.Errorf("ToString---> got %s want %s", got, want)
 		}
