@@ -49,7 +49,7 @@ func (parser *IniParser) Set(section, key, value string) string {
 func (parser *IniParser) Get(section_name, key string) (string, error) {
 	section_name = strings.TrimPrefix(strings.TrimSuffix(section_name, "]"), "[")
 	if value, ok := parser.sections[strings.ToLower(section_name)][strings.ToLower(key)]; ok {
-		return value, nil
+		return strings.ToLower(value), nil
 	}
 	return "", errors.New("The given data is not valid")
 }
@@ -76,19 +76,21 @@ func (parser *IniParser) LoadFromString(str string) error {
 	str = strings.ToLower(str)
 	sectionRegex, _ := regexp.Compile(`^\[.+\]$`)
 	sectionsNames := strings.Split(str, "\n")
-	for _, slice := range sectionsNames {
-		slice = strings.TrimSpace(slice)
-		if sectionRegex.Match([]byte(slice)) {
-			section := strings.TrimPrefix(strings.TrimSuffix(slice, "]"), "[")
+	for _, sectionName := range sectionsNames {
+		sectionName = strings.TrimSpace(sectionName)
+		if sectionRegex.Match([]byte(sectionName)) {
+			section := strings.TrimPrefix(strings.TrimSuffix(sectionName, "]"), "[")
 			currSection = section
-			parser.sections[section] = make(map[string]string)
-		} else if !strings.HasPrefix(string(slice), "#") {
-			if !strings.Contains(slice, "=") {
+			if parser.sections[section] == nil {
+				parser.sections[section] = make(map[string]string)
+			}
+		} else if !strings.HasPrefix(string(sectionName), "#") {
+			if !strings.Contains(sectionName, "=") {
 				continue
 			}
-			pair := strings.Split(slice, "=")
-			sec := parser.Set(currSection, pair[0], pair[1])
-			if sec != pair[1] {
+			pair := strings.Split(sectionName, "=")
+			sec := parser.Set(currSection, strings.TrimSpace(pair[0]), strings.TrimSpace(pair[1]))
+			if sec != strings.TrimSpace(pair[1]) {
 				return errors.New("Couldn't parse value ")
 			}
 
@@ -117,12 +119,13 @@ func (parser *IniParser) LoadFromFile(path string) error {
 func (parser *IniParser) String() string {
 	var str = ""
 	sections := maps.Keys(parser.sections)
+	sort.Strings(sections)
 	for _, section := range sections {
 		str += "[" + section + "]\n"
 		keys := maps.Keys(parser.sections[section])
-		values := maps.Values(parser.sections[section])
-		for i, key := range keys {
-			str += key + "=" + values[i] + "\n"
+		sort.Strings(keys)
+		for _, key := range keys {
+			str += key + "=" + parser.sections[section][key] + "\n"
 		}
 		str += "\n"
 

@@ -1,24 +1,14 @@
 package parser
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
-	"slices"
 	"strings"
 	"testing"
 )
-
-func TestNewParser(t *testing.T) {
-	var want map[string]map[string]string
-	res := NewParser()
-	if reflect.DeepEqual(res, want) {
-		t.Errorf("NewParser---> got %v want %v", res.sections, want)
-	}
-}
 
 func TestSetTableDriven(t *testing.T) {
 	p := NewParser()
@@ -39,9 +29,7 @@ func TestSetTableDriven(t *testing.T) {
 		t.Run(test.Name, func(t *testing.T) {
 			p.Set(test.InputSection, test.InputKey, test.InputValue)
 			ans := p.sections[test.InputSection][test.InputKey]
-			if ans != test.wantValue {
-				t.Errorf("Set--->got %s, want %s", ans, test.wantValue)
-			}
+			assertEqual(t, ans, test.wantValue)
 		})
 	}
 }
@@ -68,16 +56,14 @@ func TestGetTableDriven(t *testing.T) {
 		p.sections[test.inputSection][test.inputKey] = test.inputValue
 		t.Run(test.name, func(t *testing.T) {
 			value, err := p.Get(test.inputSection, test.inputKey)
-			if value != test.wantValue1 && err != test.wantValue2 {
-				t.Errorf("Get---> got %s %v want %s %v", value, err, test.wantValue1, test.wantValue2)
-			}
+			assertEqual(t, value, test.wantValue1)
+			assertError(t, err, test.wantValue2)
 		})
 	}
 	t.Run("Test5: Get value of non saved section", func(t *testing.T) {
 		value, err := p.Get("section2", "key21")
-		if value != "" && err != errNotFound {
-			t.Errorf("Get---> got %s %v want %s %v", value, err, "", errNotFound)
-		}
+		assertEqual(t, value, "")
+		assertError(t, err, errNotFound)
 	})
 
 }
@@ -90,9 +76,7 @@ func TestGetSectionNames(t *testing.T) {
 	}
 	t.Run("Test: Get normal section name", func(t *testing.T) {
 		got := p.GetSectionNames()
-		if !slices.Equal(want, got) {
-			t.Errorf("GetSectionNames---> got %v want %v", got, want)
-		}
+		assertEqual(t, got, want)
 	})
 }
 func TestGetSections(t *testing.T) {
@@ -108,9 +92,7 @@ func TestGetSections(t *testing.T) {
 	p.sections = want
 	t.Run("Test: Get map sections", func(t *testing.T) {
 		got, _ := p.GetSections()
-		if !reflect.DeepEqual(got, want) {
-			t.Errorf("GetSection--->got %v want %v", got, want)
-		}
+		assertEqual(t, got, want)
 	})
 }
 
@@ -141,6 +123,8 @@ func TestLoadFromString(t *testing.T) {
 		if err != nil && !reflect.DeepEqual(p.sections, want) {
 			t.Errorf("LoadFromString---> got %v want %v", p.sections, want)
 		}
+		assertEqual(t, p.sections, want)
+		assertError(t, err, nil)
 	})
 }
 
@@ -164,22 +148,21 @@ func TestLoadFromFile(t *testing.T) {
 	testname := filename[:len(filename)-len(filepath.Ext(paths[0]))]
 	t.Run(testname, func(t *testing.T) {
 		err := p.LoadFromFile(paths[0])
-		if err != nil && !reflect.DeepEqual(p.sections, want) {
-			fmt.Println(err)
-			t.Errorf("LoadFromFile---> got %v want %v", p.sections, want)
-		}
+		assertEqual(t, p.sections, want)
+		assertError(t, err, nil)
+
 	})
 
 }
 func TestString(t *testing.T) {
 	p := NewParser()
 	p.sections = map[string]map[string]string{
-		"default": {"serveraliveinterval": "45", "compression": "yes",
-			"compressionlevel": "9", "forwardx11": "yes",
+		"default": {"compression": "yes",
+			"compressionlevel": "9", "forwardx11": "yes", "serveraliveinterval": "45",
 		}, "forge.example": {
 			"user": "hg",
 		}, "topsecret.server.example": {
-			"port": "50022", "forwardx11": "no",
+			"forwardx11": "no", "port": "50022",
 		},
 	}
 	goldenfile := filepath.Join("testdata", "save_to_file"+".golden")
@@ -190,21 +173,19 @@ func TestString(t *testing.T) {
 	want := string(bytes)
 	t.Run("Test: Convert data to string", func(t *testing.T) {
 		got := p.String()
-		if reflect.DeepEqual(got, want) {
-			t.Errorf("ToString---> got %s want %s", got, want)
-		}
+		assertEqual(t, got, want)
 	})
 }
 
 func TestSaveToFile(t *testing.T) {
 	p := NewParser()
 	p.sections = map[string]map[string]string{
-		"default": {"serveraliveinterval": "45", "compression": "yes",
-			"compressionlevel": "9", "forwardx11": "yes",
+		"default": {"compression": "yes",
+			"compressionlevel": "9", "forwardx11": "yes", "serveraliveinterval": "45",
 		}, "forge.example": {
 			"user": "hg",
 		}, "topsecret.server.example": {
-			"port": "50022", "forwardx11": "no",
+			"forwardx11": "no", "port": "50022",
 		},
 	}
 	goldenfile := filepath.Join("testdata", "save_to_file"+".golden")
@@ -218,7 +199,7 @@ func TestSaveToFile(t *testing.T) {
 		inputPath       string
 		outputPathCheck string
 	}{
-		{"Test: Save to file in default directory", "", currDirec + `config.ini`},
+		{"Test: Save to file in default directory", "", currDirec + `/config.ini`},
 		//{"Test: Save to file in specfied directory", `/home/salmaelsoly/Codescalers-internship/`, `/home/salmaelsoly/Codescalers-internship/`},
 	}
 	for _, test := range tests {
@@ -229,12 +210,34 @@ func TestSaveToFile(t *testing.T) {
 			} else {
 				err = p.SaveToFile(test.inputPath)
 			}
-
-			got, _ := os.ReadFile(test.outputPathCheck)
-			if err != nil && !bytes.Equal(want, got) {
-				t.Errorf("SaveToFile---> got %v want %v", got, want)
+			if err != nil {
+				t.Fatal(err)
 			}
+			got, err := os.ReadFile(test.outputPathCheck)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			assertEqual(t, got, want)
+			assertError(t, err, nil)
 		})
 	}
 
+}
+func assertEqual(t *testing.T, got, want any) {
+	t.Helper()
+	if reflect.TypeOf(got) == reflect.TypeOf(" ") {
+		if got != want {
+			t.Errorf("got %v want %v", got, want)
+		}
+	} else if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v want %v", got, want)
+	}
+}
+
+func assertError(t *testing.T, got, want error) {
+	t.Helper()
+	if !strings.Contains(fmt.Sprint(got), fmt.Sprint(want)) {
+		t.Errorf("got %v want %v", got, want)
+	}
 }
