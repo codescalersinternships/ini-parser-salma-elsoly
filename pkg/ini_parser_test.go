@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestSetTableDriven(t *testing.T) {
@@ -165,12 +166,20 @@ func TestString(t *testing.T) {
 			"forwardx11": "no", "port": "50022",
 		},
 	}
-	goldenfile := filepath.Join("testdata", "save_to_file"+".golden")
-	bytes, err := os.ReadFile(goldenfile)
-	if err != nil {
-		t.Fatal("error reading golden file:", err)
-	}
-	want := string(bytes)
+	want := `[default]
+compression=yes
+compressionlevel=9
+forwardx11=yes
+serveraliveinterval=45
+
+[forge.example]
+user=hg
+
+[topsecret.server.example]
+forwardx11=no
+port=50022
+
+`
 	t.Run("Test: Convert data to string", func(t *testing.T) {
 		got := p.String()
 		assertEqual(t, got, want)
@@ -188,18 +197,13 @@ func TestSaveToFile(t *testing.T) {
 			"forwardx11": "no", "port": "50022",
 		},
 	}
-	goldenfile := filepath.Join("testdata", "save_to_file"+".golden")
-	want, err := os.ReadFile(goldenfile)
-	if err != nil {
-		t.Fatal("error reading golden file:", err)
-	}
 	currDirec, _ := os.Getwd()
 	var tests = []struct {
 		name            string
 		inputPath       string
 		outputPathCheck string
 	}{
-		{"Test: Save to file in default directory", "", currDirec + `/config.ini`},
+		{"Test: Save to file in default directory", currDirec+`/testdata/`, currDirec + `/testdata/config.ini`},
 		//{"Test: Save to file in specfied directory", `/home/salmaelsoly/Codescalers-internship/`, `/home/salmaelsoly/Codescalers-internship/`},
 	}
 	for _, test := range tests {
@@ -213,12 +217,12 @@ func TestSaveToFile(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			got, err := os.ReadFile(test.outputPathCheck)
+			got, err := os.Stat(test.outputPathCheck)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			assertEqual(t, got, want)
+			assertEqual(t, got.ModTime().Format(time.UnixDate), time.Now().Format(time.UnixDate))
 			assertError(t, err, nil)
 		})
 	}

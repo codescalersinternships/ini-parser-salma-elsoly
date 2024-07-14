@@ -5,10 +5,9 @@ import (
 	"sort"
 
 	"os"
-	"regexp"
 	"strings"
 
-	"golang.org/x/exp/maps"
+	// "golang.org/x/exp/maps"
 )
 
 type Stringer interface {
@@ -34,7 +33,6 @@ This function set the given value of given section and key returns a string whic
 it creates it and set the value to key
 */
 func (parser *IniParser) Set(section, key, value string) string {
-	section = strings.TrimPrefix(strings.TrimSuffix(section, "]"), "[")
 	section = strings.ToLower(section)
 	key = strings.ToLower(key)
 	value = strings.ToLower(value)
@@ -47,7 +45,6 @@ func (parser *IniParser) Set(section, key, value string) string {
 
 /* This function take section name and key and retruns the value corresponding to them. returns an error if section or key is not found*/
 func (parser *IniParser) Get(section_name, key string) (string, error) {
-	section_name = strings.TrimPrefix(strings.TrimSuffix(section_name, "]"), "[")
 	if value, ok := parser.sections[strings.ToLower(section_name)][strings.ToLower(key)]; ok {
 		return strings.ToLower(value), nil
 	}
@@ -56,7 +53,10 @@ func (parser *IniParser) Get(section_name, key string) (string, error) {
 
 /*This function returns list of section names*/
 func (parser *IniParser) GetSectionNames() []string {
-	list := maps.Keys(parser.sections)
+	var list []string
+	for section:= range(parser.sections){
+		list = append(list, section)
+	}
 	sort.Strings(list)
 	return list
 }
@@ -74,21 +74,20 @@ func (parser *IniParser) LoadFromString(str string) error {
 	var currSection string
 	str = strings.TrimSpace(str)
 	str = strings.ToLower(str)
-	sectionRegex, _ := regexp.Compile(`^\[.+\]$`)
-	sectionsNames := strings.Split(str, "\n")
-	for _, sectionName := range sectionsNames {
-		sectionName = strings.TrimSpace(sectionName)
-		if sectionRegex.Match([]byte(sectionName)) {
-			section := strings.TrimPrefix(strings.TrimSuffix(sectionName, "]"), "[")
+	lines := strings.Split(str, "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line,"[") && strings.HasSuffix(line,"]") {
+			section := strings.TrimPrefix(strings.TrimSuffix(line, "]"), "[")
 			currSection = section
 			if parser.sections[section] == nil {
 				parser.sections[section] = make(map[string]string)
 			}
-		} else if !strings.HasPrefix(string(sectionName), "#") {
-			if !strings.Contains(sectionName, "=") {
+		} else if !strings.HasPrefix(string(line), "#") {
+			if !strings.Contains(line, "=") {
 				continue
 			}
-			pair := strings.Split(sectionName, "=")
+			pair := strings.Split(line, "=")
 			sec := parser.Set(currSection, strings.TrimSpace(pair[0]), strings.TrimSpace(pair[1]))
 			if sec != strings.TrimSpace(pair[1]) {
 				return errors.New("Couldn't parse value ")
@@ -118,13 +117,13 @@ func (parser *IniParser) LoadFromFile(path string) error {
 /* This function convert sections stored of .ini to string and return this string*/
 func (parser *IniParser) String() string {
 	var str = ""
-	sections := maps.Keys(parser.sections)
-	sort.Strings(sections)
-	for _, section := range sections {
+	// sections := maps.Keys(parser.sections)
+	// sort.Strings(sections)
+	for section := range(parser.sections) {
 		str += "[" + section + "]\n"
-		keys := maps.Keys(parser.sections[section])
-		sort.Strings(keys)
-		for _, key := range keys {
+		// keys := maps.Keys(parser.sections[section])
+		// sort.Strings(keys)
+		for key := range (parser.sections[section]) {
 			str += key + "=" + parser.sections[section][key] + "\n"
 		}
 		str += "\n"
