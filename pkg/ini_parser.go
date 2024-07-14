@@ -116,12 +116,8 @@ func (parser *IniParser) LoadFromFile(path string) error {
 /* This function convert sections stored of .ini to string and return this string*/
 func (parser *IniParser) String() string {
 	var str = ""
-	// sections := maps.Keys(parser.sections)
-	// sort.Strings(sections)
 	for section := range parser.sections {
 		str += "[" + section + "]\n"
-		// keys := maps.Keys(parser.sections[section])
-		// sort.Strings(keys)
 		for key := range parser.sections[section] {
 			str += key + "=" + parser.sections[section][key] + "\n"
 		}
