@@ -13,7 +13,7 @@ the stored key and values
     ```
     --> go get github.com/codescalersinternships/salmaelsoly-inigo
     ```
-    then get the package by ruuning this command in cli
+    then get the package by running this command in cli
     ```
     p:= parser.NewParser()
     ```
